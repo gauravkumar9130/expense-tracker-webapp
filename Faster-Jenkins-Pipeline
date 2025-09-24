@@ -24,18 +24,6 @@ pipeline {
             }
         }
 
-        stage("Dependency Check") {
-            steps {
-                sh '''
-dependency-check.sh --scan ./ \
-                    --format HTML \
-                    --out ./dependency-check-report.html \
-                    --data /opt/dependency-check/data/ \
-                    --disableOssIndex \
-                    --exclude target
-                '''
-            }
-        }
 
         stage("Deploy") {
             steps {

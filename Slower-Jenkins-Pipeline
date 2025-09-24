@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         SONAR_HOME = tool "Sonar"
+        BUILD_VERSION = "${env.BUILD_NUMBER}" // Use Jenkins build number as version
     }
     stages {
         stage("Clone Code from GitHub") {
@@ -35,11 +36,65 @@ analyzer.ossindex.user=$OSS_USER
 analyzer.ossindex.password=$OSS_PASS
 EOF
 
-dependency-check.sh --scan ./ \
-                    --format HTML \
-                    --out ./dependency-check-report.html \
-                    --propertyfile odc.properties \
-                    --data /opt/dependency-check/data/
+dependency-check --scan ./ \
+                 --format HTML \
+                 --out ./dependency-check-report.html \
+                 --propertyfile odc.properties \
+                 --data /var/lib/jenkins/dependency-data
+                    '''
+                }
+            }
+        }
+
+        stage("Build Image and Trivy Scan") {
+            steps {
+                echo "Building Docker image with tag ${BUILD_VERSION}"
+                sh "docker build -t gauravkumar9130/my-expense-tracker:${BUILD_VERSION} ."
+
+                sh '''
+mkdir -p trivy-reports
+trivy image --exit-code 1 --severity HIGH,CRITICAL --format table gauravkumar9130/my-expense-tracker:${BUILD_VERSION} | tee trivy-reports/trivy-scan.txt
+                '''
+            }
+        }
+
+        stage("Manual Approval for Production") {
+            steps {
+                script {
+                    // Send email notification
+                    emailext (
+                        to: "devops.vishwas@example.com",
+                        subject: "Approval Required: Docker Image & Sonar Scan",
+                        body: """
+Hello Team,
+
+The Docker image gauravkumar9130/my-expense-tracker:${BUILD_VERSION} has been built and scanned with Trivy.
+SonarQube quality analysis has also been completed.
+
+Please review and approve if it's OK to push to Docker.
+
+You can approve here: ${env.BUILD_URL}input
+
+Thanks
+"""
+                    )
+                }
+
+                // Wait for manual approval in Jenkins
+                timeout(time: 1, unit: 'HOURS') {
+                    input message: 'Approve deployment to Docker?', ok: 'Approve'
+                }
+            }
+        }
+
+        stage("Push Docker Image") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-creds', 
+                                                  usernameVariable: 'DOCKER_USER', 
+                                                  passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+docker push gauravkumar9130/my-expense-tracker:${BUILD_VERSION}
                     '''
                 }
             }

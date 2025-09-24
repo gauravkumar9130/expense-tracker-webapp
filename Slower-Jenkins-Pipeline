@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+    environment {
+        SONAR_HOME = tool "Sonar"
+    }
+    stages {
+        stage("Clone Code from GitHub") {
+            steps {
+                git url: "https://github.com/gauravkumar9130/expense-tracker-webapp", branch: "master"
+            }
+        }
+
+        stage("Build") {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage("SonarQube Quality Analysis") {
+            steps {
+                withSonarQubeEnv("Sonar") {
+                    sh "$SONAR_HOME/bin/sonar-scanner -Dsonar.projectName=mydevproject -Dsonar.projectKey=mydevproject -Dsonar.sources=. -Dsonar.java.binaries=target/classes"
+                }
+            }
+        }
+
+        stage("Dependency Check") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'ossindex-creds', 
+                                                  usernameVariable: 'OSS_USER', 
+                                                  passwordVariable: 'OSS_PASS')]) {
+                    sh '''
+cat > odc.properties <<EOF
+analyzer.ossindex.user=$OSS_USER
+analyzer.ossindex.password=$OSS_PASS
+EOF
+
+dependency-check.sh --scan ./ \
+                    --format HTML \
+                    --out ./dependency-check-report.html \
+                    --propertyfile odc.properties \
+                    --data /opt/dependency-check/data/
+                    '''
+                }
+            }
+        }
+
+        stage("Deploy") {
+            steps {
+                echo "Hello I am Deploying"
+            }
+        }
+    }
+}

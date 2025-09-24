@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: expense-tracker
-        image: gauravkumar9130/my-expense-tracker:41
+        image: gauravkumar9130/my-expense-tracker:v42
         env:
         - name: SPRING_DATASOURCE_URL
           value: jdbc:mysql://mysql:3306/expenses

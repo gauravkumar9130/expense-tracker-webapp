@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expense-tracker
+  namespace: expense-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expense-tracker
+  template:
+    metadata:
+      labels:
+        app: expense-tracker
+    spec:
+      containers:
+      - name: expense-tracker
+        image: gauravkumar9130/my-expense-tracker:41
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://mysql:3306/expenses
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: root
+        ports:
+        - containerPort: 8080
+---
+# Expense Tracker ClusterIP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: expense-tracker
+  namespace: expense-app
+spec:
+  selector:
+    app: expense-tracker
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

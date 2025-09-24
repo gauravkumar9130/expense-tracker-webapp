@@ -48,12 +48,12 @@ dependency-check --scan ./ \
 
         stage("Build Image and Trivy Scan") {
             steps {
-                echo "Building Docker image with tag ${BUILD_VERSION}"
-                sh "docker build -t gauravkumar9130/my-expense-tracker:${BUILD_VERSION} ."
+                echo "Building Docker image with tag v${BUILD_VERSION}"
+                sh "docker build -t gauravkumar9130/my-expense-tracker:v${BUILD_VERSION} ."
 
                 sh '''
 mkdir -p trivy-reports
-trivy image --exit-code 1 --severity HIGH,CRITICAL --format table gauravkumar9130/my-expense-tracker:${BUILD_VERSION} | tee trivy-reports/trivy-scan.txt
+trivy image --exit-code 1 --severity HIGH,CRITICAL --format table gauravkumar9130/my-expense-tracker:v${BUILD_VERSION} | tee trivy-reports/trivy-scan.txt
                 '''
             }
         }
@@ -68,7 +68,7 @@ trivy image --exit-code 1 --severity HIGH,CRITICAL --format table gauravkumar913
                         body: """
 Hello Team,
 
-The Docker image gauravkumar9130/my-expense-tracker:${BUILD_VERSION} has been built and scanned with Trivy.
+The Docker image gauravkumar9130/my-expense-tracker:v${BUILD_VERSION} has been built and scanned with Trivy.
 SonarQube quality analysis has also been completed.
 
 Please review and approve if it's OK to push to Docker.
@@ -94,7 +94,7 @@ Thanks
                                                   passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
 echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-docker push gauravkumar9130/my-expense-tracker:${BUILD_VERSION}
+docker push gauravkumar9130/my-expense-tracker:v${BUILD_VERSION}
                     '''
                 }
             }
